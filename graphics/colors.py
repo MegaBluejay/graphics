@@ -72,3 +72,43 @@ def hsv_to_rgb(h, s, v):
         k = (n + h * 6) % 6
         rgb.append(v * (1 - s * max(0, min(k, 4 - k, 1))))
     return rgb
+
+
+def make_ypbpr(kr, kg, kb):
+    there_mat = np.array(
+        [
+            [kr, kg, kb],
+            [-kr / 2 / (1 - kb), -kg / 2 / (1 - kb), 1 / 2],
+            [1 / 2, -kg / 2 / (1 - kr), -kb / 2 / (1 - kr)],
+        ]
+    )
+    back_mat = np.linalg.inv(there_mat)
+
+    def there(rgb):
+        return there_mat @ rgb
+
+    def back(ypbpr):
+        return back_mat @ ypbpr
+
+    return there, back
+
+
+rgb_to_ypbpr601, ypbpr601_to_rgb = make_ypbpr(0.299, 0.587, 0.114)
+rgb_to_ypbpr709, ypbpr709_to_rgb = make_ypbpr(0.2126, 0.7152, 0.0722)
+
+ycocg_there_mat = np.array(
+    [
+        [1 / 4, 1 / 2, 1 / 4],
+        [1 / 2, 0, -1 / 2],
+        [-1 / 4, 1 / 2, -1 / 4],
+    ]
+)
+ycocg_back_mat = np.linalg.inv(ycocg_there_mat)
+
+
+def rgb_to_ycocg(rgb):
+    return ycocg_there_mat @ rgb
+
+
+def ycocg_to_rgb(ycocg):
+    return ycocg_back_mat @ ycocg
