@@ -112,3 +112,10 @@ def rgb_to_ycocg(rgb):
 
 def ycocg_to_rgb(ycocg):
     return ycocg_back_mat @ ycocg
+
+
+def rgb_to_cmy(rgb):
+    return 1 - rgb
+
+
+cmy_to_rgb = rgb_to_cmy
