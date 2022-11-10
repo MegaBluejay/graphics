@@ -12,6 +12,8 @@ def with_array(func):
 
 
 def get_h(r, g, b, c_max, c_delta):
+    if c_delta == 0:
+        return 0
     if c_max == r:
         h = (g - b) / c_delta
     elif c_max == g:
