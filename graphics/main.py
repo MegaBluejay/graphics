@@ -58,12 +58,10 @@ buffer = io.BytesIO()
 try:
     with open_pnm_file(filename, "rb") as file:
         image, max_val = read_pnm(file)
-        print(image)
     if len(image.shape) != 2:
         image = normalize(image, max_val)
         image = np.apply_along_axis(to_rgb[color_mode], -1, image)
     image = to_8bit(image)
-    print(image)
     write_pnm(image, max_val, buffer)
 
 except Exception as exc:
