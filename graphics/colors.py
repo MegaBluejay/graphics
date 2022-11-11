@@ -41,6 +41,10 @@ def get_sv(c_max, c_sum, c_delta):
     return s, v
 
 
+def rgb_to_rgb(rgb):
+    return rgb
+
+
 def rgb_to_hsx(get_sx):
     @with_array
     def convert(r, g, b):
