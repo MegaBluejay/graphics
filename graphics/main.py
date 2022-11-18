@@ -88,7 +88,7 @@ else:
             "PNP",
             [
                 [sg.Image(data=buffer.getvalue())],
-                [sg.Text("Read as")],
+                [sg.Text("Show as")],
                 [
                     sg.Listbox(
                         values=color_modes,
@@ -121,8 +121,7 @@ else:
             break
         if event == "channel" or "color_mode":
             new_image = normalize(image, max_val)
-            new_image = np.apply_along_axis(rgb_to[color_mode], -1, new_image)
-            new_image = np.apply_along_axis(to_rgb[new_color_mode], -1, new_image)
+            new_image = np.apply_along_axis(rgb_to[new_color_mode], -1, new_image)
             new_image = to_8bit(new_image)
             buffer = io.BytesIO()
             if channel == "All":
