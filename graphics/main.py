@@ -78,7 +78,6 @@ try:
         image = np.apply_along_axis(to_rgb[color_mode], -1, image)
     image = to_8bit(image)
     write_pnm(image, max_val, buffer)
-
 except Exception as exc:
     handle_exception(exc)
 else:
@@ -129,7 +128,7 @@ else:
             if channel == "All":
                 write_pnm(new_image, max_val, buffer)
             else:
-                ch1, ch2, ch3 = np.moveaxis(image, -1, 0)
+                ch1, ch2, ch3 = np.moveaxis(new_image, -1, 0)
                 if channel == "1":
                     write_pnm(ch1, max_val, buffer)
                 if channel == "2":
