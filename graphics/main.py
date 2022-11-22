@@ -65,10 +65,11 @@ else:
     new_color_mode = None
     channel = None
     while True:
-        event, values = sg.Window(
+        h, w = image.shape[:2]
+        window = sg.Window(
             "PNP",
             [
-                [sg.Image(data=buffer.getvalue())],
+                [sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph", enable_events=True)],
                 [sg.Text("Show as")],
                 [
                     sg.Listbox(
@@ -95,7 +96,10 @@ else:
                 ],
                 [sg.Button("Save", k="save"), sg.Exit()],
             ],
-        ).read(close=True)
+            finalize=True,
+        )
+        window["graph"].draw_image(data=buffer.getvalue(), location=(10, 10))
+        event, values = window.read(close=True)
         new_color_mode = values["color_mode"][0]
         channel = values["channel"][0]
         if event in (sg.WINDOW_CLOSED, "Exit"):
