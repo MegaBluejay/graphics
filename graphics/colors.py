@@ -2,6 +2,8 @@ from functools import wraps
 
 import numpy as np
 
+color_modes = ["rgb", "hsl", "hsv", "ypbpr601", "ypbpr709", "ycocg", "cmy"]
+
 
 def with_array(func):
     @wraps(func)
@@ -41,10 +43,6 @@ def get_sv(c_max, c_sum, c_delta):
     return s, v
 
 
-def rgb_to_rgb(rgb):
-    return rgb
-
-
 def rgb_to_hsx(get_sx):
     @with_array
     def convert(r, g, b):
@@ -55,10 +53,6 @@ def rgb_to_hsx(get_sx):
         return h, s, x
 
     return convert
-
-
-rgb_to_hsl = rgb_to_hsx(get_sl)
-rgb_to_hsv = rgb_to_hsx(get_sv)
 
 
 @with_array
@@ -120,8 +114,36 @@ def ycocg_to_rgb(ycocg):
     return ycocg_back_mat @ ycocg
 
 
-def rgb_to_cmy(rgb):
+def cmy(rgb):
     return 1 - rgb
 
 
-cmy_to_rgb = rgb_to_cmy
+rgb_to = {
+    "hsl": rgb_to_hsx(get_sl),
+    "hsv": rgb_to_hsx(get_sv),
+    "ypbpr601": rgb_to_ypbpr601,
+    "ypbpr709": rgb_to_ypbpr709,
+    "ycocg": rgb_to_ycocg,
+    "cmy": cmy,
+}
+
+to_rgb = {
+    "hsl": hsl_to_rgb,
+    "hsv": hsv_to_rgb,
+    "ypbpr601": ypbpr601_to_rgb,
+    "ypbpr709": ypbpr709_to_rgb,
+    "ycocg": ycocg_to_rgb,
+    "cmy": cmy,
+}
+
+
+def transform_pixels(image, f):
+    return np.apply_along_axis(f, -1, image)
+
+
+def convert_color(image, frm, to):
+    if frm != "rgb":
+        image = transform_pixels(image, to_rgb[frm])
+    if to != "rgb":
+        image = transform_pixels(image, rgb_to[to])
+    return image
