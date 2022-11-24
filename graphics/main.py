@@ -77,7 +77,7 @@ sg.theme("DarkGray15")
 get_image_info_layout = [
     [sg.Text("Filename")],
     [sg.Input(key="filename", enable_events=True), sg.FileBrowse(target="filename")],
-    [sg.Listbox(values=color_modes, default_values=["rgb"], size=(30, 5), key="color_mode")],
+    [sg.Listbox(values=color_modes, default_values=["rgb"], size=(10, 5), key="color_mode")],
     [sg.Button("OK", key="done", disabled=True), sg.Cancel()],
 ]
 values = require_filename("Open PNM", get_image_info_layout)
@@ -93,30 +93,40 @@ with handle_exception(exit_on_error=True):
 
 layout = [
     [sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph")],
-    [sg.Text("Show as")],
     [
-        sg.Listbox(
-            values=color_modes,
-            default_values=[color_mode],
-            size=(30, 5),
-            enable_events=True,
-            key="color_mode",
-        )
-    ],
-    [sg.Text("Select channel")],
-    [
-        sg.Listbox(
-            values=["All", "1", "2", "3"],
-            enable_events=True,
-            default_values=["All"],
-            size=(30, 3),
-            key="channel",
-        )
+        sg.Column(
+            [
+                [sg.Text("Show as")],
+                [
+                    sg.Listbox(
+                        values=color_modes,
+                        default_values=[color_mode],
+                        size=(10, 5),
+                        enable_events=True,
+                        key="color_mode",
+                    )
+                ],
+            ],
+        ),
+        sg.Column(
+            [
+                [sg.Text("Channel")],
+                [
+                    sg.Listbox(
+                        values=["All", "1", "2", "3"],
+                        enable_events=True,
+                        default_values=["All"],
+                        size=(5, 3),
+                        key="channel",
+                    )
+                ],
+            ],
+        ),
     ],
     [sg.Button("Save", key="save"), sg.Exit()],
 ]
 
-window = sg.Window("PNM", layout, finalize=True)
+window = sg.Window("PNM", layout, finalize=True, element_justification="center")
 draw_image(window["graph"], image[color_mode])
 with open_window(window) as evs:
     for event, values in evs:
