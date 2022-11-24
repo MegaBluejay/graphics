@@ -147,3 +147,17 @@ def convert_color(image, frm, to):
     if to != "rgb":
         image = transform_pixels(image, rgb_to[to])
     return image
+
+
+class Image:
+    def __init__(self, data, color_mode="rgb"):
+        self.color_mode = color_mode
+        self.data = data
+        self.cache = {color_mode: data}
+
+    def __getitem__(self, color_mode):
+        if color_mode not in self.cache:
+            self.cache[color_mode] = convert_color(self.data, self.color_mode, color_mode)
+            if color_mode == "rgb":
+                self.color_mode = "rgb"
+        return self.cache[color_mode]
