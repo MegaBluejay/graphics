@@ -23,6 +23,7 @@ with handle_exception(exit_on_error=True):
     image_data = normalize(image_data, max_val)
     image = Image(image_data, color_mode)
 
+channel = "All"
 layout = [
     [sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph")],
     [
@@ -54,24 +55,39 @@ layout = [
                 ],
             ],
         ),
+        sg.Column(
+            [
+                [sg.Input("2.2", size=(5, 1), key="gamma")],
+                [sg.Button("Convert Gamma", key="convert_gamma")],
+                [sg.Button("Assign Gamma", key="assign_gamma")],
+            ],
+        ),
     ],
     [sg.Button("Save", key="save"), sg.Exit()],
 ]
 
 window = sg.Window("PNM", layout, finalize=True, element_justification="center")
-draw_image(window["graph"], image[color_mode])
+draw_image(window["graph"], image, color_mode, channel)
 with open_window(window) as evs:
     for event, values in evs:
         if event == "color_mode":
-            window["channel"].update(set_to_index=0)
             color_mode = values["color_mode"][0]
-            draw_image(window["graph"], image[color_mode])
+            window["channel"].update(set_to_index=0)
+            channel = "All"
         if event == "channel":
             channel = values["channel"][0]
-            if channel == "All":
-                draw_image(window["graph"], image[color_mode])
+        if event in ["assign_gamma", "convert_gamma"]:
+            try:
+                gamma = float(values["gamma"])
+            except ValueError:
+                window["gamma"].update(str(image.gamma))
             else:
-                draw_image(window["graph"], image[color_mode][:, :, int(channel) - 1])
+                if event == "convert_gamma":
+                    image = image.convert_gamma(gamma)
+                if event == "assign_gamma":
+                    image.assign_gamma(gamma)
+        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma"]:
+            draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
             save_layout = [
                 [sg.Input(key="filename", enable_events=True), sg.SaveAs(target="filename")],
@@ -82,4 +98,4 @@ with open_window(window) as evs:
                 filename = save_values["filename"]
                 with handle_exception(exit_on_error=False):
                     with open_pnm_file(filename, "wb") as file:
-                        write_pnm(to_8bit(image[color_mode]), 255, file)
+                        write_pnm(to_8bit(image.convert_gamma(2.2)[color_mode]), 255, file)

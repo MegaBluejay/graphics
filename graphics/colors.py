@@ -150,10 +150,13 @@ def convert_color(image, frm, to):
 
 
 class Image:
-    def __init__(self, data, color_mode="rgb"):
-        self.color_mode = color_mode
+    def __init__(self, data, color_mode="rgb", gamma=2.2, parent=None):
         self.data = data
+        self.color_mode = color_mode
+        self.gamma = gamma
         self.cache = {color_mode: data}
+        self.gamma_cache = parent.gamma_cache if parent else {}
+        self.gamma_cache[gamma] = self
 
     def __getitem__(self, color_mode):
         if color_mode not in self.cache:
@@ -161,3 +164,12 @@ class Image:
             if color_mode == "rgb":
                 self.color_mode = "rgb"
         return self.cache[color_mode]
+
+    def convert_gamma(self, gamma):
+        if gamma not in self.gamma_cache:
+            return Image(self["rgb"] ** (self.gamma / gamma), gamma=gamma, parent=self)
+        return self.gamma_cache[gamma]
+
+    def assign_gamma(self, gamma):
+        self.gamma = gamma
+        self.gamma_cache = {gamma: self}

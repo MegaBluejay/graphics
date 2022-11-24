@@ -54,7 +54,10 @@ def open_window(window):
     window.close()
 
 
-def draw_image(graph, image_data):
+def draw_image(graph, image, color_mode, channel):
+    image_data = image.convert_gamma(2.2)[color_mode]
+    if channel != "All":
+        image_data = image_data[:, :, int(channel) - 1]
     buffer = io.BytesIO()
     write_pnm(to_8bit(image_data), 255, buffer)
     graph.erase()
