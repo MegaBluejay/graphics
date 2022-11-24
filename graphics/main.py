@@ -1,6 +1,8 @@
+import numpy as np
 import PySimpleGUI as sg
 
 from .colors import Image, color_modes
+from .draw import draw_line
 from .pnm import open_pnm_file, read_pnm, write_pnm
 from .ui_utils import draw_image, handle_exception, open_window, require_filename
 from .utils import normalize, to_8bit
@@ -25,7 +27,16 @@ with handle_exception(exit_on_error=True):
 
 channel = "All"
 layout = [
-    [sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph")],
+    [
+        sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph", enable_events=True),
+        sg.Column(
+            [
+                [sg.Input("0.5", key=("line_color", i), size=(5, 1)) for i in range(3)],
+                [sg.Text("Line Width"), sg.Input("1", key="line_width", size=(5, 1))],
+                [sg.Text("Line alpha"), sg.Input("0.5", key="line_alpha", size=(5, 1))],
+            ],
+        ),
+    ],
     [
         sg.Column(
             [
@@ -68,6 +79,7 @@ layout = [
 
 window = sg.Window("PNM", layout, finalize=True, element_justification="center")
 draw_image(window["graph"], image, color_mode, channel)
+p0 = None
 with open_window(window) as evs:
     for event, values in evs:
         if event == "color_mode":
@@ -86,7 +98,25 @@ with open_window(window) as evs:
                     image = image.convert_gamma(gamma)
                 if event == "assign_gamma":
                     image.assign_gamma(gamma)
-        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma"]:
+        if event == "graph":
+            if p0:
+                line = draw_line((h, w), np.array(p0), np.array(values["graph"]), int(values["line_width"]))
+                np.set_printoptions(threshold=np.inf)
+                print(line)
+                p0 = None
+                color = np.array([float(values[("line_color", i)]) for i in range(3)])
+                alpha = float(values["line_alpha"])
+                colored_line = line[:, :, np.newaxis] * (alpha * color)
+                image_data = image[color_mode]
+                if channel == "All":
+                    image_data = image_data + colored_line
+                else:
+                    i = int(channel) - 1
+                    image_data[:, :, i] = np.clip(image_data[:, :, i] + colored_line[:, :, i])
+                image = Image(image_data, color_mode, image.gamma)
+            else:
+                p0 = values["graph"]
+        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph"]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
             save_layout = [
