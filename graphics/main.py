@@ -28,7 +28,7 @@ with handle_exception(exit_on_error=True):
 channel = "All"
 layout = [
     [
-        sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph", enable_events=True),
+        sg.Graph((w, h), (0, h - 1), (w - 1, 0), key="graph", enable_events=True, drag_submits=True),
         sg.Column(
             [
                 [sg.Input("0.5", key=("line_color", i), size=(5, 1)) for i in range(3)],
@@ -79,7 +79,7 @@ layout = [
 
 window = sg.Window("PNM", layout, finalize=True, element_justification="center")
 draw_image(window["graph"], image, color_mode, channel)
-p0 = None
+p0, og_image = None, None
 with open_window(window) as evs:
     for event, values in evs:
         if event == "color_mode":
@@ -99,20 +99,22 @@ with open_window(window) as evs:
                 if event == "assign_gamma":
                     image.assign_gamma(gamma)
         if event == "graph":
-            if p0:
-                line = draw_line((h, w), np.array(p0), np.array(values["graph"]), int(values["line_width"]))
-                p0 = None
-                color = np.array([float(values[("line_color", i)]) for i in range(3)])
-                alpha = float(values["line_alpha"]) * line
-                image_data = image[color_mode]
-                if channel == "All":
-                    image_data = alpha[:, :, np.newaxis] * color + (1 - alpha[:, :, np.newaxis]) * image_data
-                else:
-                    i = int(channel) - 1
-                    image_data[:, :, i] = alpha * color[i] + (1 - alpha) * image_data[:, :, i]
-                image = Image(image_data, color_mode, gamma=image.gamma)
+            if p0 is not None:
+                if values["graph"] != p0:
+                    line = draw_line((h, w), np.array(p0), np.array(values["graph"]), int(values["line_width"]))
+                    color = np.array([float(values[("line_color", i)]) for i in range(3)])
+                    alpha = float(values["line_alpha"]) * line
+                    image_data = og_image[color_mode].copy()
+                    if channel == "All":
+                        image_data = alpha[:, :, np.newaxis] * color + (1 - alpha[:, :, np.newaxis]) * image_data
+                    else:
+                        i = int(channel) - 1
+                        image_data[:, :, i] = alpha * color[i] + (1 - alpha) * image_data[:, :, i]
+                    image = Image(image_data, color_mode, gamma=og_image.gamma)
             else:
-                p0 = values["graph"]
+                p0, og_image = values["graph"], image
+        if event == "graph+UP":
+            p0, og_image = None, None
         if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph"]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
