@@ -20,8 +20,11 @@ def draw_rect(im_shape, ps):
     pi, (_, miny) = min(enumerate(ps), key=lambda q: q[1][1])
     li1, li2 = (pi - 1) % 4, pi
     y = ceil(miny)
-    if ceil(ps[(pi + 1) % 4][1]) == y:
-        big_im[y : floor(ps[(pi + 2) % 4][1]) + 1, ceil(ps[pi][0]) : floor(ps[(pi + 1) % 4][0]) + 1] = 1
+    for di in [-1, 1]:
+        if ceil(ps[(pi + di) % 4][1]) != y:
+            continue
+        p1, p2 = sorted([pi, (pi + di) % 4], key=lambda i: ps[i][0])
+        big_im[y : floor(ps[(p2 + 1) % 4][1]) + 1, ceil(ps[p1][0]) : floor(ps[p2][0]) + 1] = 1
         return blockwise_view(big_im, (4, 4)).sum(axis=(2, 3)) / 16
     sides = 0
     while True:
@@ -40,7 +43,7 @@ def draw_rect(im_shape, ps):
 
 def draw_line(im_shape, p1, p2, width):
     h = p2 - p1
-    w_half = width * np.array([[0, 1], [-1, 0]]) @ h / np.linalg.norm(h)
+    w_half = width * np.array([[0, 1], [-1, 0]]) @ h / np.linalg.norm(h) / 2
     ps = np.array([p1 + w_half, p2 + w_half, p2 - w_half, p1 - w_half])
     for i in range(2):
         np.clip(ps[:, i], 0, im_shape[i] - 1, ps[:, i])
