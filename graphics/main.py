@@ -101,19 +101,16 @@ with open_window(window) as evs:
         if event == "graph":
             if p0:
                 line = draw_line((h, w), np.array(p0), np.array(values["graph"]), int(values["line_width"]))
-                np.set_printoptions(threshold=np.inf)
-                print(line)
                 p0 = None
                 color = np.array([float(values[("line_color", i)]) for i in range(3)])
-                alpha = float(values["line_alpha"])
-                colored_line = line[:, :, np.newaxis] * (alpha * color)
+                alpha = float(values["line_alpha"]) * line
                 image_data = image[color_mode]
                 if channel == "All":
-                    image_data = image_data + colored_line
+                    image_data = alpha[:, :, np.newaxis] * color + (1 - alpha[:, :, np.newaxis]) * image_data
                 else:
                     i = int(channel) - 1
-                    image_data[:, :, i] = np.clip(image_data[:, :, i] + colored_line[:, :, i])
-                image = Image(image_data, color_mode, image.gamma)
+                    image_data[:, :, i] = alpha * color[i] + (1 - alpha) * image_data[:, :, i]
+                image = Image(image_data, color_mode, gamma=image.gamma)
             else:
                 p0 = values["graph"]
         if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph"]:
