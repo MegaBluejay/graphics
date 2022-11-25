@@ -20,6 +20,9 @@ def draw_rect(im_shape, ps):
     pi, (_, miny) = min(enumerate(ps), key=lambda q: q[1][1])
     li1, li2 = (pi - 1) % 4, pi
     y = ceil(miny)
+    if ceil(ps[(pi + 1) % 4][1]) == y:
+        big_im[y : floor(ps[(pi + 2) % 4][1]) + 1, ceil(ps[pi][0]) : floor(ps[(pi + 1) % 4][0]) + 1] = 1
+        return blockwise_view(big_im, (4, 4)).sum(axis=(2, 3)) / 16
     sides = 0
     while True:
         if y > lines[li1][0][1]:
