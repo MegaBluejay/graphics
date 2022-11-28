@@ -5,73 +5,61 @@ import numpy as np
 color_modes = ["rgb", "hsl", "hsv", "ypbpr601", "ypbpr709", "ycocg", "cmy"]
 
 
-def with_array(func):
-    @wraps(func)
-    def wrapper(arr):
-        return np.array(func(*arr))
-
-    return wrapper
-
-
-def get_h(r, g, b, c_max, c_delta):
-    if c_delta == 0:
-        return 0
-    if c_max == r:
-        h = (g - b) / c_delta
-    elif c_max == g:
-        h = (b - r) / c_delta + 2
-    else:
-        h = (r - g) / c_delta + 4
-    return (h / 6) % 1
+def get_h(image, c_max, c_delta, out):
+    has_delta = c_delta != 0
+    rmax = has_delta & (c_max == image[:, :, 0])
+    out[rmax] = (image[rmax, 1] - image[rmax, 2]) / c_delta[rmax]
+    gmax = has_delta & (c_max == image[:, :, 1])
+    out[gmax] = (image[gmax, 2] - image[gmax, 0]) / c_delta[gmax] + 2
+    bmax = has_delta & (c_max == image[:, :, 2])
+    out[bmax] = (image[bmax, 0] - image[bmax, 1]) / c_delta[bmax] + 4
+    out /= 6
+    out %= 1
 
 
-def get_sl(c_max, c_sum, c_delta):
-    l = c_sum / 2
-    if l in [0, 1]:
-        s = 0
-    else:
-        s = c_delta / (1 - abs(c_sum - 1))
-    return s, l
+def get_sl(c_max, c_sum, c_delta, out):
+    out[:, :, 1] = l = c_sum / 2
+    ok = (l != 0) & (l != 1)
+    out[ok, 0] = c_delta[ok] / (1 - np.abs(c_sum[ok] - 1))
 
 
-def get_sv(c_max, c_sum, c_delta):
-    v = c_max
-    if v == 0:
-        s = 0
-    else:
-        s = c_delta / v
-    return s, v
+def get_sv(c_max, c_sum, c_delta, out):
+    out[:, :, 1] = v = c_max
+    ok = v != 0
+    out[ok, 0] = c_delta[ok] / v[ok]
 
 
 def rgb_to_hsx(get_sx):
-    @with_array
-    def convert(r, g, b):
-        c_min, c_max = min(r, g, b), max(r, g, b)
+    def convert(image):
+        new = np.zeros_like(image)
+        c_min, c_max = image.min(axis=2), image.max(axis=2)
         c_sum, c_delta = c_max + c_min, c_max - c_min
-        h = get_h(r, g, b, c_max, c_delta)
-        s, x = get_sx(c_max, c_sum, c_delta)
-        return h, s, x
+        get_h(image, c_max, c_delta, new[:, :, 0])
+        get_sx(c_max, c_sum, c_delta, new[:, :, 1:])
+        return new
 
     return convert
 
 
-@with_array
-def hsl_to_rgb(h, s, l):
-    rgb = []
-    alpha = s * min(l, 1 - l)
-    for n in (0, 8, 4):
-        k = (n + h * 12) % 12
-        rgb.append(l - alpha * max(-1, min(k - 3, 9 - k, 1)))
-    return rgb
+def hsl_to_rgb(image):
+    new = np.zeros_like(image)
+    alpha = image[:, :, 1] * np.minimum(image[:, :, 2], 1 - image[:, :, 2])
+    for i, n in enumerate([0, 8, 4]):
+        k = (n + image[:, :, 0] * 12) % 12
+        new[:, :, i] = image[:, :, 2] - alpha * np.maximum(-1, np.minimum(k - 3, np.minimum(9 - k, 1)))
+    return new
 
 
-@with_array
-def hsv_to_rgb(h, s, v):
-    rgb = []
-    for n in (5, 3, 1):
-        k = (n + h * 6) % 6
-        rgb.append(v * (1 - s * max(0, min(k, 4 - k, 1))))
-    return rgb
+def hsv_to_rgb(image):
+    new = np.zeros_like(image)
+    for i, n in enumerate([5, 3, 1]):
+        k = (n + image[:, :, 0] * 6) % 6
+        new[:, :, i] = image[:, :, 2] * (1 - image[:, :, 1] * np.maximum(0, np.minimum(k, np.minimum(4 - k, 1))))
+    return new
+
+
+def mul_colors(mat, image):
+    return np.einsum("ij,mnj->mni", mat, image)
 
 
 def make_ypbpr(kr, kg, kb):
@@ -84,11 +72,11 @@ def make_ypbpr(kr, kg, kb):
     )
     back_mat = np.linalg.inv(there_mat)
 
-    def there(rgb):
-        return there_mat @ rgb
+    def there(image):
+        return mul_colors(there_mat, image)
 
-    def back(ypbpr):
-        return back_mat @ ypbpr
+    def back(image):
+        return mul_colors(back_mat, image)
 
     return there, back
 
@@ -106,12 +94,12 @@ ycocg_there_mat = np.array(
 ycocg_back_mat = np.linalg.inv(ycocg_there_mat)
 
 
-def rgb_to_ycocg(rgb):
-    return ycocg_there_mat @ rgb
+def rgb_to_ycocg(image):
+    return mul_colors(ycocg_there_mat, image)
 
 
-def ycocg_to_rgb(ycocg):
-    return ycocg_back_mat @ ycocg
+def ycocg_to_rgb(image):
+    return mul_colors(ycocg_back_mat, image)
 
 
 def cmy(rgb):
@@ -137,15 +125,11 @@ to_rgb = {
 }
 
 
-def transform_pixels(image, f):
-    return np.apply_along_axis(f, -1, image)
-
-
 def convert_color(image, frm, to):
     if frm != "rgb":
-        image = transform_pixels(image, to_rgb[frm])
+        image = to_rgb[frm](image)
     if to != "rgb":
-        image = transform_pixels(image, rgb_to[to])
+        image = rgb_to[to](image)
     return image
 
 
