@@ -1,4 +1,4 @@
-from functools import cache
+from functools import cache, partial
 from itertools import product
 from math import ceil
 
@@ -72,3 +72,12 @@ def atkinson_dither(image, bitness):
             for (di, dj) in [(0, 1), (0, 2), (1, -1), (1, 0), (1, 1), (2, 0)]:
                 ww[i + di, j + dj] += err
     return image / q
+
+
+algos = {
+    "ordered": ordered_dither,
+    "random_sync": partial(random_dither, sync_channels=True),
+    "random_nosync": partial(random_dither, sync_channels=False),
+    "floyd": floyd_dither,
+    "atkinson": atkinson_dither,
+}

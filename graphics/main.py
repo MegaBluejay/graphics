@@ -2,6 +2,7 @@ import numpy as np
 import PySimpleGUI as sg
 
 from .colors import Image, color_modes
+from .dither import algos
 from .draw import draw_line
 from .pnm import open_pnm_file, read_pnm, write_pnm
 from .ui_utils import draw_image, handle_exception, open_window, require_filename
@@ -73,6 +74,21 @@ layout = [
                 [sg.Button("Assign Gamma", key="assign_gamma")],
             ],
         ),
+        sg.Column(
+            [
+                [sg.Text("Bitness"), sg.Input("8", size=(5, 1), key="bitness")],
+                [
+                    sg.Listbox(
+                        values=list(algos.keys()),
+                        default_values=["ordered"],
+                        enable_events=True,
+                        size=(15, 5),
+                        key="dither_algo",
+                    )
+                ],
+                [sg.Button("Dither", key="dither")],
+            ],
+        ),
     ],
     [sg.Button("Save", key="save"), sg.Exit()],
 ]
@@ -115,7 +131,14 @@ with open_window(window) as evs:
                 p0, og_image = values["graph"], image
         if event == "graph+UP":
             p0, og_image = None, None
-        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph"]:
+        if event == "dither":
+            try:
+                algo = algos[values["dither_algo"][0]]
+                bitness = int(values["bitness"])
+                image = Image(algo(image.convert_gamma(1)["rgb"], bitness), gamma=1).convert_gamma(image.gamma)
+            except ValueError:
+                window["bitness"].update("8")
+        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph", "dither"]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
             save_layout = [
