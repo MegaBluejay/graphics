@@ -19,6 +19,7 @@ values = require_filename("Open PNM", get_image_info_layout)
 if not values:
     exit()
 filename, color_mode = values["filename"], values["color_mode"][0]
+first_color_mode = color_mode
 with handle_exception(exit_on_error=True):
     with open_pnm_file(filename, "rb") as file:
         image_data, max_val = read_pnm(file)
@@ -91,7 +92,7 @@ layout = [
             ],
         ),
     ],
-    [sg.Button("Save", key="save"), sg.Exit()],
+    [sg.Button("Save", key="save"), sg.Button("Reload", key="reload"), sg.Exit()],
 ]
 
 window = sg.Window("PNM", layout, finalize=True, element_justification="center")
@@ -141,7 +142,13 @@ with open_window(window) as evs:
                 window["bitness"].update("8")
         if event == "gradient":
             image = Image(np.tile(np.linspace((0, 0, 0), (1, 1, 1), 256), (256, 1, 1)), gamma=image.gamma)
-        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph", "dither", "gradient"]:
+        if event == "reload":
+            color_mode = first_color_mode
+            with open_pnm_file(filename, "rb") as file:
+                image_data, max_val = read_pnm(file)
+            image_data = normalize(image_data, max_val)
+            image = Image(image_data, color_mode)
+        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph", "dither", "gradient", "reload"]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
             save_layout = [
