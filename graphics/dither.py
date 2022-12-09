@@ -3,6 +3,7 @@ from itertools import product
 from math import ceil
 
 import numpy as np
+from numba import njit
 
 rng = np.random.default_rng()
 
@@ -42,15 +43,19 @@ def random_dither(image, bitness, sync_channels):
     return np.round(image * q + random_map) / q
 
 
+@njit(cache=True)
 def floyd_dither(image, bitness):
     q = 2**bitness - 1
     image *= q
     h, w = image.shape[:2]
     ww = np.zeros((h + 1, w + 1, 3))
+    new = np.zeros(3)
     for i in range(h):
         for j in range(w):
-            new = np.clip(np.round(image[i, j] + ww[i, j]), 0, q)
-            err = (image[i, j] + ww[i, j] - new) / 16
+            image[i, j] += ww[i, j]
+            np.round(image[i, j], 0, new)
+            np.clip(new, 0, q, out=new)
+            err = (image[i, j] - new) / 16
             image[i, j] = new
             ww[i, j + 1] += err * 7
             ww[i + 1, j - 1] += err * 3
@@ -59,15 +64,19 @@ def floyd_dither(image, bitness):
     return image / q
 
 
+@njit(cache=True)
 def atkinson_dither(image, bitness):
     q = 2**bitness - 1
     image *= q
     h, w = image.shape[:2]
     ww = np.zeros((h + 2, w + 2, 3))
+    new = np.zeros(3)
     for i in range(h):
         for j in range(w):
-            new = np.clip(np.round(image[i, j] + ww[i, j]), 0, q)
-            err = (image[i, j] + ww[i, j] - new) / 8
+            image[i, j] += ww[i, j]
+            np.round(image[i, j], 0, new)
+            np.clip(new, 0, q, out=new)
+            err = (image[i, j] - new) / 8
             image[i, j] = new
             for (di, dj) in [(0, 1), (0, 2), (1, -1), (1, 0), (1, 1), (2, 0)]:
                 ww[i + di, j + dj] += err
