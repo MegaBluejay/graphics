@@ -87,6 +87,7 @@ layout = [
                     )
                 ],
                 [sg.Button("Dither", key="dither")],
+                [sg.Button("Gradient", key="gradient")],
             ],
         ),
     ],
@@ -138,7 +139,9 @@ with open_window(window) as evs:
                 image = Image(algo(image.convert_gamma(1)["rgb"], bitness), gamma=1).convert_gamma(image.gamma)
             except ValueError:
                 window["bitness"].update("8")
-        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph", "dither"]:
+        if event == "gradient":
+            image = Image(np.tile(np.linspace((0, 0, 0), (1, 1, 1), 256), (256, 1, 1)), gamma=image.gamma)
+        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph", "dither", "gradient"]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
             save_layout = [
