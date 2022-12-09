@@ -4,7 +4,7 @@
 - Муров Глеб M33011
 
 ## Dependencies
-Tested with PyPy 7.3.9 (3.9.12) and CPython 3.10.7, but should work with any python 3.6+ interpreter
+Tested with CPython 3.10.8, but should work with any 3.6+
 
 ### With pipenv
 - `pipenv install`
@@ -13,4 +13,4 @@ Tested with PyPy 7.3.9 (3.9.12) and CPython 3.10.7, but should work with any pyt
 - `pip install -r requirements.txt`
 
 ## Usage
-`python main.py`
+`python -m graphics.main`
