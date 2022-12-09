@@ -136,7 +136,7 @@ with open_window(window) as evs:
             try:
                 algo = algos[values["dither_algo"][0]]
                 bitness = int(values["bitness"])
-                image = Image(algo(image.convert_gamma(1)["rgb"], bitness), gamma=1).convert_gamma(image.gamma)
+                image = Image(algo(image["rgb"], bitness), gamma=image.gamma)
             except ValueError:
                 window["bitness"].update("8")
         if event == "gradient":
