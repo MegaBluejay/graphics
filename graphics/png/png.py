@@ -134,4 +134,13 @@ def read_png(file):
             else:
                 raise ChunkNotFound("IEND")
         chunks.append(build_chunk(name, content))
-    return build_image(chunks)
+
+    gamma = next((chunk for chunk in chunks if chunk.chunk_type == ChunkType.gAMA), None)
+    if gamma is None:
+        gamma = 2.2
+    else:
+        gamma = float(int.from_bytes(gamma.data, "big"))/100000
+    sRgb = next((chunk for chunk in chunks if chunk.chunk_type == ChunkType.sRGB), None)
+    if sRgb is not None:
+        gamma = 2.2
+    return build_image(chunks), gamma
