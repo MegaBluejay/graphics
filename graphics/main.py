@@ -32,9 +32,9 @@ with handle_exception(exit_on_error=True):
             image_data = normalize(image_data, max_val)
             image = Image(image_data, color_mode)
         else:
-            image_data = read_png(file)
+            image_data, gamma = read_png(file)
             h, w = image_data.shape[:2]
-            image = Image(image_data, color_mode)
+            image = Image(image_data, color_mode, image)
 
 channel = "All"
 layout = [
@@ -79,7 +79,7 @@ layout = [
         ),
         sg.Column(
             [
-                [sg.Input("2.2", size=(5, 1), key="gamma")],
+                [sg.Input(str(image.gamma), size=(5, 1), key="gamma")],
                 [sg.Button("Convert Gamma", key="convert_gamma")],
                 [sg.Button("Assign Gamma", key="assign_gamma")],
             ],
