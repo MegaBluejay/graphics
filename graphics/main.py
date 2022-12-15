@@ -34,7 +34,6 @@ with handle_exception(exit_on_error=True):
         else:
             image_data = read_png(file)
             h, w = image_data.shape[:2]
-            print(image_data)
             image = Image(image_data, color_mode)
 
 channel = "All"

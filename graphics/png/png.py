@@ -66,6 +66,14 @@ def defilter(data, width, height, bytes_per_pixel):
     return image
 
 
+def apply_palette(image, palette):
+    if len(bytearray(palette)) % 3 != 0:
+        raise InvalidContent("PLTE", palette)
+    palette = np.array(bytearray(palette)).reshape(len(bytearray(palette))//3, 3)
+    converted_img = np.array([palette[pixel] for pixel in image])
+    return converted_img
+
+
 def build_image(chunks: list[Chunk]):
     ihdr = next(chunk for chunk in chunks if chunk.chunk_type == ChunkType.IHDR)
     reader = io.BytesIO(ihdr.data)
@@ -83,7 +91,11 @@ def build_image(chunks: list[Chunk]):
     idat = b''.join(chunk.data for chunk in chunks if chunk.chunk_type == ChunkType.IDAT)
     decoded = zlib.decompress(idat)
     image = defilter(decoded, width, height, bytes_per_pixel)
-    if color_type == 2:
+    if color_type == 3:
+        palette = next(chunk for chunk in chunks if chunk.chunk_type == ChunkType.PLTE)
+        image = apply_palette(image, palette.data)
+        image = np.array(image).reshape(height, width, 3)
+    elif color_type == 2:
         image = np.array(image).reshape(height, width, 3)
     else:
         image = np.array(image).reshape(height, width)
@@ -122,5 +134,4 @@ def read_png(file):
             else:
                 raise ChunkNotFound("IEND")
         chunks.append(build_chunk(name, content))
-        print(name)
     return build_image(chunks)
