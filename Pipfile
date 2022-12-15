@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 numpy = "*"
 pysimplegui = "*"
+numba = "*"
 
 [dev-packages]
 ipython = "*"
