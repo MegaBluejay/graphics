@@ -4,6 +4,7 @@ import PySimpleGUI as sg
 from .colors import Image, color_modes
 from .dither import algos
 from .draw import draw_line
+from graphics.png import read_png
 from .pnm import open_pnm_file, read_pnm, write_pnm
 from .ui_utils import draw_image, handle_exception, open_window, require_filename
 from .utils import normalize, to_8bit
@@ -19,12 +20,22 @@ values = require_filename("Open PNM", get_image_info_layout)
 if not values:
     exit()
 filename, color_mode = values["filename"], values["color_mode"][0]
+image = None
+image_data = None
+h = 0
+w = 0
 with handle_exception(exit_on_error=True):
     with open_pnm_file(filename, "rb") as file:
-        image_data, max_val = read_pnm(file)
-    h, w = image_data.shape[:2]
-    image_data = normalize(image_data, max_val)
-    image = Image(image_data, color_mode)
+        if str(filename).split('.')[-1] != "png":
+            image_data, max_val = read_pnm(file)
+            h, w = image_data.shape[:2]
+            image_data = normalize(image_data, max_val)
+            image = Image(image_data, color_mode)
+        else:
+            image_data = read_png(file)
+            h, w = image_data.shape[:2]
+            print(image_data)
+            image = Image(image_data, color_mode)
 
 channel = "All"
 layout = [

@@ -24,6 +24,14 @@ def handle_exception(exit_on_error):
             error_text = f"Invalid image ({exc.problem})"
         elif isinstance(exc, PnmError):
             error_text = "PNM error"
+        elif isinstance(exc, PngSignature):
+            error_text = f"Invalid signature {exc.signature}"
+        elif isinstance(exc, UnknownChunkType):
+            error_text = f"Unknown chunk type {exc.chunk_name}"
+        elif isinstance(exc, ChunkNotFound):
+            error_text = f"File does not have {exc.chunk_name} chunk"
+        elif isinstance(exc, InvalidContent):
+            error_text = f"Invalid content of chunk {exc.chunk_name}: {exc.content}"
         else:
             error_text = "Unknown error"
         error = traceback.format_exc()

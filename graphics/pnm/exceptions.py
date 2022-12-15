@@ -5,6 +5,10 @@ class PnmError(Exception):
     pass
 
 
+class PngError(Exception):
+    pass
+
+
 @dataclass
 class FileOpenError(PnmError):
     filename: str
@@ -23,3 +27,24 @@ class FormatError(PnmError):
 @dataclass
 class DataError(PnmError):
     problem: str
+
+
+@dataclass
+class PngSignature(PngError):
+    signature: str
+
+
+@dataclass
+class UnknownChunkType(PngError):
+    chunk_name: str
+
+
+@dataclass
+class ChunkNotFound(PngError):
+    chunk_name: str
+
+
+@dataclass
+class InvalidContent(PngError):
+    chunk_name: str
+    content: str
