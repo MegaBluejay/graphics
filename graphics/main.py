@@ -4,7 +4,7 @@ import PySimpleGUI as sg
 from .colors import Image, color_modes
 from .dither import algos
 from .draw import draw_line
-from graphics.png import read_png
+from graphics.png import read_png, write_png
 from .pnm import open_pnm_file, read_pnm, write_pnm
 from .ui_utils import draw_image, handle_exception, open_window, require_filename
 from .utils import normalize, to_8bit
@@ -163,4 +163,7 @@ with open_window(window) as evs:
                 filename = save_values["filename"]
                 with handle_exception(exit_on_error=False):
                     with open_pnm_file(filename, "wb") as file:
-                        write_pnm(to_8bit(image.convert_gamma(2.2)[color_mode]), 255, file)
+                        if str(filename).split('.')[-1] != "png":
+                            write_pnm(to_8bit(image.convert_gamma(2.2)[color_mode]), 255, file)
+                        else:
+                            write_png(image.convert_gamma(2.2)[color_mode], file)
