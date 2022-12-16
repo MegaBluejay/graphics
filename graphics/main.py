@@ -34,7 +34,7 @@ with handle_exception(exit_on_error=True):
         else:
             image_data, gamma = read_png(file)
             h, w = image_data.shape[:2]
-            image = Image(image_data, color_mode)
+            image = Image(normalize(image_data, 255), color_mode, gamma)
 
 channel = "All"
 layout = [
