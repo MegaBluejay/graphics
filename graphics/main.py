@@ -166,4 +166,4 @@ with open_window(window) as evs:
                         if str(filename).split(".")[-1] != "png":
                             write_pnm(to_8bit(image.convert_gamma(2.2)[color_mode]), 255, file)
                         else:
-                            write_png(image.convert_gamma(2.2)[color_mode], file)
+                            write_png(to_8bit(image.convert_gamma(2.2)[color_mode]).astype(int), file, 2.2)
