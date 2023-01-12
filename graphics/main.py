@@ -1,9 +1,12 @@
+import io
+
 import numpy as np
 import PySimpleGUI as sg
 
 from .colors import Image, color_modes
 from .dither import algos
 from .draw import draw_line
+from .histo import correct, histo
 from .png import read_png, write_png
 from .pnm import open_pnm_file, read_pnm, write_pnm
 from .ui_utils import draw_image, handle_exception, open_window, require_filename
@@ -100,6 +103,11 @@ layout = [
                 [sg.Button("Gradient", key="gradient")],
             ],
         ),
+        sg.Column(
+            [
+                [sg.Button("Histogram", key="histo")],
+            ],
+        ),
     ],
     [sg.Button("Save", key="save"), sg.Exit()],
 ]
@@ -151,7 +159,40 @@ with open_window(window) as evs:
                 window["bitness"].update("8")
         if event == "gradient":
             image = Image(np.tile(np.linspace((0, 0, 0), (1, 1, 1), 256), (256, 1, 1)), gamma=image.gamma)
-        if event in ["color_mode", "channel", "assign_gamma", "convert_gamma", "graph", "dither", "gradient"]:
+        if event == "histo":
+            image_data = image[color_mode]
+            if channel != "All":
+                image_data = image_data[int(channel) - 1]
+            histo_graph = histo(image_data)
+            buffer = io.BytesIO()
+            write_pnm(to_8bit(histo_graph), 255, buffer)
+            histo_event, histo_values = sg.Window(
+                "Histogram",
+                [
+                    [sg.Image(data=buffer.getvalue())],
+                    [sg.Text("Ignore"), sg.Input("0", key="ignore")],
+                    [sg.Ok(), sg.Button("Correct", key="correct")],
+                ],
+            ).read(close=True)
+            if histo_event == "correct":
+                ignore = float(histo_values["ignore"])
+                image_data = correct(image_data, ignore)
+                if channel != "All":
+                    all_data = image[color_mode]
+                    all_data[int(channel) - 1] = image_data
+                else:
+                    all_data = image_data
+                image = Image(all_data, color_mode=color_mode, gamma=image.gamma)
+        if event in [
+            "color_mode",
+            "channel",
+            "assign_gamma",
+            "convert_gamma",
+            "graph",
+            "dither",
+            "gradient",
+            "histogram",
+        ]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":
             save_layout = [
