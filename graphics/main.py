@@ -161,15 +161,21 @@ with open_window(window) as evs:
             image = Image(np.tile(np.linspace((0, 0, 0), (1, 1, 1), 256), (256, 1, 1)), gamma=image.gamma)
         if event == "histo":
             image_data = image[color_mode]
-            if channel != "All":
-                image_data = image_data[int(channel) - 1]
-            histo_graph = histo(image_data)
+            if channel == "All":
+                datas = np.moveaxis(image_data, 2, 0)
+            else:
+                image_data = image_data[:, :, int(channel) - 1]
+                datas = [image_data]
+            histos = []
             buffer = io.BytesIO()
-            write_pnm(to_8bit(histo_graph), 255, buffer)
+            for data in datas:
+                histo_graph = histo(data)
+                write_pnm(to_8bit(histo_graph), 255, buffer)
+                histos.append(sg.Image(data=buffer.getvalue()))
             histo_event, histo_values = sg.Window(
                 "Histogram",
                 [
-                    [sg.Image(data=buffer.getvalue())],
+                    histos,
                     [sg.Text("Ignore"), sg.Input("0", key="ignore")],
                     [sg.Ok(), sg.Button("Correct", key="correct")],
                 ],
@@ -179,7 +185,7 @@ with open_window(window) as evs:
                 image_data = correct(image_data, ignore)
                 if channel != "All":
                     all_data = image[color_mode]
-                    all_data[int(channel) - 1] = image_data
+                    all_data[:, :, int(channel) - 1] = image_data
                 else:
                     all_data = image_data
                 image = Image(all_data, color_mode=color_mode, gamma=image.gamma)
