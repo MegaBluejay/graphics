@@ -162,13 +162,13 @@ with open_window(window) as evs:
         if event == "histo":
             image_data = image[color_mode]
             if channel == "All":
-                datas = np.moveaxis(image_data, 2, 0)
+                datas = [image_data[:, :, i] for i in range(3)]
             else:
                 image_data = image_data[:, :, int(channel) - 1]
                 datas = [image_data]
             histos = []
-            buffer = io.BytesIO()
             for data in datas:
+                buffer = io.BytesIO()
                 histo_graph = histo(data)
                 write_pnm(to_8bit(histo_graph), 255, buffer)
                 histos.append(sg.Image(data=buffer.getvalue()))
@@ -197,7 +197,7 @@ with open_window(window) as evs:
             "graph",
             "dither",
             "gradient",
-            "histogram",
+            "histo",
         ]:
             draw_image(window["graph"], image, color_mode, channel)
         if event == "save":

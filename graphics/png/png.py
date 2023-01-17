@@ -1,18 +1,39 @@
+import io
+import zlib
 from contextlib import contextmanager
 from enum import Enum
-import io
 from math import floor
+from time import sleep
 
 import numpy as np
 
 from graphics.pnm.exceptions import *
-from time import sleep
-import zlib
 
 PNG_SIGNATURE = bytes(bytearray.fromhex("89 50 4E 47 0D 0A 1A 0A"))
-ChunkType = Enum('ChunkType',
-                 ['IHDR', 'PLTE', 'IDAT', 'IEND', 'bKGD', 'cHRM', 'gAMA', 'hIST', 'iCCP', 'iTXt', 'pHYs', 'sBIT',
-                  'sPLT', 'sRGB', 'sTER', 'tEXt', 'tIME', 'tRNS', 'zTXt'])
+ChunkType = Enum(
+    "ChunkType",
+    [
+        "IHDR",
+        "PLTE",
+        "IDAT",
+        "IEND",
+        "bKGD",
+        "cHRM",
+        "gAMA",
+        "hIST",
+        "iCCP",
+        "iTXt",
+        "pHYs",
+        "sBIT",
+        "sPLT",
+        "sRGB",
+        "sTER",
+        "tEXt",
+        "tIME",
+        "tRNS",
+        "zTXt",
+    ],
+)
 
 lookup_table = []
 
@@ -21,18 +42,18 @@ def create_table():
     for i in range(256):
         k = i
         for _ in range(8):
-            k = (k >> 1) ^ 0xedb88320 if k & 1 else k >> 1
-        lookup_table.append(k & 0xffffffff)
+            k = (k >> 1) ^ 0xEDB88320 if k & 1 else k >> 1
+        lookup_table.append(k & 0xFFFFFFFF)
 
 
 def crc32(bytestream):
     if len(lookup_table) == 0:
         create_table()
-    crc = 0xffffffff
+    crc = 0xFFFFFFFF
     for byte in bytestream:
-        lookup_index = (crc ^ byte) & 0xff
-        crc = ((crc >> 8) & 0xffffffff) ^ lookup_table[lookup_index]
-    return crc ^ 0xffffffff
+        lookup_index = (crc ^ byte) & 0xFF
+        crc = ((crc >> 8) & 0xFFFFFFFF) ^ lookup_table[lookup_index]
+    return crc ^ 0xFFFFFFFF
 
 
 class Chunk:
@@ -44,7 +65,7 @@ class Chunk:
         data = bytearray()
         length = len(self.data).to_bytes(4, "big")
         data += length
-        chunk_type = self.chunk_type.name.encode('utf-8')
+        chunk_type = self.chunk_type.name.encode("utf-8")
         data += chunk_type
         data += self.data
         checksum_data = bytearray(chunk_type)
@@ -81,22 +102,23 @@ def defilter(data, width, height, bytes_per_pixel):
         for c in range(width * bytes_per_pixel):  # for each byte in scanline
             curr = data[i]
             i += 1
-            raw_x_bpp = (image[r * width * bytes_per_pixel + c - bytes_per_pixel] if c >= bytes_per_pixel else 0)
-            prior_x = (image[(r - 1) * width * bytes_per_pixel + c] if r > 0 else 0)
+            raw_x_bpp = image[r * width * bytes_per_pixel + c - bytes_per_pixel] if c >= bytes_per_pixel else 0
+            prior_x = image[(r - 1) * width * bytes_per_pixel + c] if r > 0 else 0
             prior_x_bpp = (
-                image[(r - 1) * width * bytes_per_pixel + c - bytes_per_pixel] if r > 0 and c >= bytes_per_pixel else 0)
+                image[(r - 1) * width * bytes_per_pixel + c - bytes_per_pixel] if r > 0 and c >= bytes_per_pixel else 0
+            )
             if filter_type == 0:  # None
                 image.append(curr)
             elif filter_type == 1:  # Sub
-                image.append((curr + raw_x_bpp) & 0xff)
+                image.append((curr + raw_x_bpp) & 0xFF)
             elif filter_type == 2:  # Up
-                image.append((curr + prior_x) & 0xff)
+                image.append((curr + prior_x) & 0xFF)
             elif filter_type == 3:  # Average
-                image.append((curr + (raw_x_bpp + prior_x) // 2) & 0xff)
+                image.append((curr + (raw_x_bpp + prior_x) // 2) & 0xFF)
             elif filter_type == 4:  # Paeth
-                image.append((curr + paeth_predictor(raw_x_bpp, prior_x, prior_x_bpp)) & 0xff)
+                image.append((curr + paeth_predictor(raw_x_bpp, prior_x, prior_x_bpp)) & 0xFF)
             else:
-                raise Exception('unknown filter type: ' + str(filter_type))
+                raise Exception("unknown filter type: " + str(filter_type))
     return image
 
 
@@ -111,23 +133,24 @@ def filter(data, filter_type: int):
         for c in range(width * bytes_per_pixel):  # for each byte in scanline
             curr = data[i]
             i += 1
-            raw_x_bpp = (data[r * width * bytes_per_pixel + c - bytes_per_pixel] if c >= bytes_per_pixel else 0)
-            prior_x = (data[(r - 1) * width * bytes_per_pixel + c] if r > 0 else 0)
+            raw_x_bpp = data[r * width * bytes_per_pixel + c - bytes_per_pixel] if c >= bytes_per_pixel else 0
+            prior_x = data[(r - 1) * width * bytes_per_pixel + c] if r > 0 else 0
             prior_x_bpp = (
-                data[(r - 1) * width * bytes_per_pixel + c - bytes_per_pixel] if r > 0 and c >= bytes_per_pixel else 0)
+                data[(r - 1) * width * bytes_per_pixel + c - bytes_per_pixel] if r > 0 and c >= bytes_per_pixel else 0
+            )
             if filter_type == 0:  # None
                 image.append(curr)
             # BUG
             elif filter_type == 1:  # Sub
-                image.append((curr - raw_x_bpp) & 0xff)
+                image.append((curr - raw_x_bpp) & 0xFF)
             elif filter_type == 2:  # Up
-                image.append((curr - prior_x) & 0xff)
+                image.append((curr - prior_x) & 0xFF)
             elif filter_type == 3:  # Average
-                image.append((curr - (raw_x_bpp + prior_x) // 2) & 0xff)
+                image.append((curr - (raw_x_bpp + prior_x) // 2) & 0xFF)
             elif filter_type == 4:  # Paeth
-                image.append((curr - paeth_predictor(raw_x_bpp, prior_x, prior_x_bpp)) & 0xff)
+                image.append((curr - paeth_predictor(raw_x_bpp, prior_x, prior_x_bpp)) & 0xFF)
             else:
-                raise Exception('unknown filter type: ' + str(filter_type))
+                raise Exception("unknown filter type: " + str(filter_type))
     return image
 
 
@@ -153,7 +176,7 @@ def build_image(chunks: list[Chunk]):
     if width == 0 or height == 0 or depth != 8 or color_type == 4 or color_type == 6 or deflate != 0 or interlace != 0:
         InvalidContent("IHDR", ihdr.data)
 
-    idat = b''.join(chunk.data for chunk in chunks if chunk.chunk_type == ChunkType.IDAT)
+    idat = b"".join(chunk.data for chunk in chunks if chunk.chunk_type == ChunkType.IDAT)
     decoded = zlib.decompress(idat)
     image = defilter(decoded, width, height, bytes_per_pixel)
     if color_type == 3:
@@ -189,10 +212,10 @@ def read_png(file):
     chunks = []
     while True:
         len = int.from_bytes(reader.read(4), "big")
-        name = reader.read(4).decode('ascii')
+        name = reader.read(4).decode("ascii")
         content = reader.read(len)
         _checksum = reader.read(4)
-        if name == '':
+        if name == "":
             if any([chunk.chunk_type == ChunkType.IEND for chunk in chunks]):
                 break
             else:
@@ -217,32 +240,31 @@ def write_png(image, file, gamma, filter_type=4):
     height, width = image.shape[:2]
     ihdr_data += width.to_bytes(4, "big")
     ihdr_data += height.to_bytes(4, "big")
-    ihdr_data += bytes(b'\x08')
-    color_type = bytes(b'\x00')
+    ihdr_data += bytes(b"\x08")
+    color_type = bytes(b"\x00")
     if image.ndim == 3:
-        color_type = bytes(b'\x02')
+        color_type = bytes(b"\x02")
     ihdr_data += color_type
-    ihdr_data += bytes(b'\x00\x00\x00')
+    ihdr_data += bytes(b"\x00\x00\x00")
     IHDR = Chunk(ChunkType.IHDR, ihdr_data)
     chunks.append(IHDR)
 
-    gAMA = Chunk(ChunkType.gAMA, floor(gamma*10000).to_bytes(4, "big"))
+    gAMA = Chunk(ChunkType.gAMA, floor(gamma * 100_000).to_bytes(4, "big"))
     chunks.append(gAMA)
 
     # Построение IDAT
     filtered = filter(image, filter_type)
-    filtered = b''.join(int(byte).to_bytes(1, "big") for byte in filtered)
+    filtered = b"".join(int(byte).to_bytes(1, "big") for byte in filtered)
     compressed = zlib.compress(filtered)
     compressed_splitted = []
     for i in range(0, len(compressed), 8192):
-        compressed_splitted.append(compressed[i:i + 8192])
+        compressed_splitted.append(compressed[i : i + 8192])
 
     for idat_data in compressed_splitted:
         IDAT = Chunk(ChunkType.IDAT, idat_data)
         chunks.append(IDAT)
-    IEND = Chunk(ChunkType.IEND, b'')
+    IEND = Chunk(ChunkType.IEND, b"")
     chunks.append(IEND)
     file.write(PNG_SIGNATURE)
     for chunk in chunks:
         file.write(chunk.create_binary())
-
